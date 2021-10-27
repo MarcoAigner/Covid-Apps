@@ -18,12 +18,12 @@ let appleAppStore = {
 // Users input search terms at the beginning
 const searchTerms = prompt('👋Hi! Please enter the terms that you want to scrape for, separated by commas:').split(',');
 
- //const searchTerms = ['Corona', 'Corona App', 'Corona Warning App', 'Covid-19', 'Covid-19 App', 'Covid-19 App english', 'Contact data', 'Contact details', 'Contact tracing', 'Center for Disease control', 'SARS-CoV-2' ];
+//const searchTerms = ['Corona', 'Corona App', 'Corona Warning App', 'Covid-19', 'Covid-19 App', 'Covid-19 App english', 'Contact data', 'Contact details', 'Contact tracing', 'Center for Disease control', 'SARS-CoV-2' ];
 
 // Requires an app-store and a scraper, then scrapes set store usingn the input search-terms
 // Finally writes the apps found to a .csv-file
 async function scrapeStore(appStore, scraper) {
-  console.log(`👀 Beginning to scrape ${appStore.appStoreTitle}`);
+  console.log(`🧐 Beginning to scrape ${appStore.appStoreTitle}`);
   
   for(const searchTerm of searchTerms) {
     const foundApps = await scraper.search({
@@ -46,8 +46,8 @@ async function scrapeStore(appStore, scraper) {
   // Convert and export the array of scraped apps to a .csv-file
   converter.json2csv(appStore.apps, (err, csv) => {
     if (err) throw err;
-    fs.writeFile(`./scrapedData/New/${appStore.appStoreTitle}.csv`, csv, (err, bytesWritten, buffer) => {
-      console.log(`✍️ Saved found apps to ./scrapedData/New/${appStore.appStoreTitle}.csv`)
+    fs.writeFile(`./scrapedData/${appStore.appStoreTitle}.csv`, csv, (err, bytesWritten, buffer) => {
+      console.log(`✍️ Saved ${appStore.apps.length} apps found in ${appStore.appStoreTitle} to ./scrapedData/${appStore.appStoreTitle}.csv`)
     })
   })
 }
