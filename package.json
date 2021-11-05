@@ -13,5 +13,8 @@
     "google-play-scraper": "^8.0.4",
     "json-2-csv": "^3.14.4",
     "prompt-sync": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.6"
   }
 }
