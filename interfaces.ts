@@ -1,14 +1,21 @@
 import * as googleScraper from "google-play-scraper";
 import * as appleScraper from "app-store-scraper"
 
-export interface AppStore {
+export interface AppStore extends Object {
   title: string,
   short: string,
   scraper: typeof googleScraper | typeof appleScraper,
   apps: Array<Object>
 }
 
-export interface GoogleApp {
+// TODO: Implement top-level interface for Google and Apple App
+// Danach sollten Google- und Apple-Apps mithilfe des Union-Operators Funktionen übergeben werden können
+
+export interface App extends Object {
+  
+}
+
+export interface GoogleApp extends App {
   title: string,
   appId: string,
   url: string,
@@ -22,10 +29,10 @@ export interface GoogleApp {
   summary: string,
   scoreText: string,
   score: number,
-  searchTerm?: string
+  searchTerm: Array<string>
 }
 
-export interface AppleApp {
+export interface AppleApp extends App {
   id: number,
   appId: string,
   title: string,
@@ -59,17 +66,98 @@ export interface AppleApp {
   ipadScreenshots: Array<string>,
   appletvScreenshots: Array<string>,
   supportedDevices: Array<string>,
-  searchTerm?: string
+  searchTerm: Array<string>
 }
 
-export interface CombinedApp {
-  titleGoogle: string,
-  titleApple: string,
-  developerGoogle: string,
-  developerApple: string,
-  urlGoogle: string,
-  urlApple: string,
-  searchTermsGoogle: Array<string>,
-  searchTermsApple: Array<string>,
-  covidRelation?: boolean,
+/*export class GoogleApp {
+  title: string;
+  appId: string;
+  url: string;
+  icon: string;
+  developer: string;
+  developerId: string;
+  priceText: string;
+  currency: string;
+  price: number;
+  free: boolean;
+  summary: string;
+  scoreText: string;
+  score: number;
+  searchTerm?: string;
+
+  constructor(title: string,
+    appId: string,
+    url: string,
+    icon: string,
+    developer: string,
+    developerId: string,
+    priceText: string,
+    currency: string,
+    price: number,
+    free: boolean,
+    summary: string,
+    scoreText: string,
+    score: number,
+    searchTerm?: string) {
+    this.title = title;
+    this.appId = appId;
+    this.url = url;
+    this.icon = icon;
+    this.developer = developer;
+    this.developerId = developerId;
+    this.priceText = priceText;
+    this.currency = currency;
+    this.price = price;
+    this.free = free;
+    this.summary = summary;
+    this.scoreText = scoreText;
+    this.score = score;
+    this.searchTerm = searchTerm;
+
+  }
+}*/
+
+export interface CombinedApp extends Object {
+  titleGoogle: string | null,
+  titleApple: string | null,
+  appIdGoogle: string | null,
+  appIdApple: string | null,
+  developerGoogle: string | null,
+  developerApple: string | null,
+  urlGoogle: string | null,
+  urlApple: string | null,
+  searchTermsGoogle: Array<string> | null,
+  searchTermsApple: Array<string> | null,
+  covidRelation: boolean | null | null,
+  bothAppsStores: boolean | null,
 }
+
+
+// export class CombinedApp {
+//   titleGoogle: string | null
+//   titleApple: string | null
+//   appIdGoogle: string | null
+//   appIdApple: string | null
+//   developerGoogle: string | null
+//   developerApple: string | null
+//   urlGoogle: string | null
+//   urlApple: string | null
+//   searchTermsGoogle: Array<string> | null
+//   searchTermsApple: Array<string> | null
+//   covidRelation: boolean | null | null
+
+//   get bothAppsStores() {
+//     return this.titleApple && this.titleApple
+//   }
+
+//   addGoogleAppData(googleApp: GoogleApp) {
+//     // this....
+//   }
+
+//   addAppleAppData(appleApp: AppleApp) {
+
+//   }
+
+
+// }
+
