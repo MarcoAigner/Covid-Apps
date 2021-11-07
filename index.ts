@@ -1,33 +1,71 @@
-//const googleScraper = require ("google-play-scraper");
-//const appleScraper = require("app-store-scraper");
-//const converter = require("json-2-csv");
-//const fs = require("fs");
-
 import * as googleScraper from "google-play-scraper";
 import * as appleScraper from "app-store-scraper";
 import * as converter from "json-2-csv";
 import * as fs from "fs";
+import { AppStore, GoogleApp, AppleApp } from "./interfaces";
 import * as prompt from "prompt-sync";
-import {AppStore, GoogleApp, AppleApp, CombinedApp} from "./interfaces";
 
+// FIXME: Somehow, each run returns a different amount of apps
+// Check, if the cause is within the script
 
+class CombinedApp {
+  titleGoogle?: string = undefined;
+  titleApple?: string = undefined;
+  urlGoogle?: string = undefined;
+  urlApple?: string = undefined;
+  enUs?: boolean = undefined;
+  covidRelation?: boolean = undefined;
+  additionalProductsRequired?: boolean = undefined;
+  regional?: boolean = undefined;
+  state?: boolean = undefined;
+  pilot?: boolean = undefined;
+  organisational?: boolean = undefined;
+  limitedLiability?: boolean = undefined;
+  comment?: string = undefined;
+  appIdGoogle?: string = undefined;
+  appIdApple?: string = undefined;
+  developerGoogle?: string = undefined;
+  developerApple?: string = undefined;
+  searchTermsGoogle?: Array<string> = undefined;
+  searchTermsApple?: Array<string> = undefined;
+
+  addGoogleAppData(googleApp: GoogleApp) {
+    if (this.titleGoogle) this.searchTermsGoogle?.push(googleApp.searchTerm);
+    else {
+      this.titleGoogle = googleApp.title;
+      this.appIdGoogle = googleApp.appId;
+      this.developerGoogle = googleApp.developer;
+      this.urlGoogle = googleApp.url;
+      this.searchTermsGoogle = [googleApp.searchTerm];
+    }
+  }
+
+  addAppleAppData(appleApp: AppleApp) {
+    if (this.titleApple) this.searchTermsApple?.push(appleApp.searchTerm);
+    else {
+      this.titleApple = appleApp.title;
+      this.appIdApple = appleApp.appId;
+      this.developerApple = appleApp.developer;
+      this.urlApple = appleApp.url;
+      this.searchTermsApple = [appleApp.searchTerm];
+    }
+  }
+}
 
 // Apps stores are represented with an app-store-title and an array of apps, found for given search-terms
 let googlePlayStore: AppStore = {
-  title: 'Google Play Store',
-  short: 'google',
-  scraper: googleScraper,
-  apps: []
-}
+  title: "Google Play Store",
+  short: "google",
+  scraper: googleScraper
+};
 
 let appleAppStore: AppStore = {
-  title: 'Apple App Store',
-  short: 'apple',
-  scraper: appleScraper,
-  apps: []
-}
+  title: "Apple App Store",
+  short: "apple",
+  scraper: appleScraper
+};
 
-// TODO: Prompt-Sync doesn't work anymore with Typescript => Either hardcode or workaround
+// TODO: Implement CLI-based User-Interface
 
 //Prompt for search-strings and get rid of eventual (trailing) commas and spaces
 //const searchTerms: Array<string> = prompt(
@@ -37,182 +75,84 @@ let appleAppStore: AppStore = {
 //  .filter((searchTerm) => searchTerm !== "");
 //console.log(`Input: ${searchTerms}`);
 
-//const searchTerms: Array<string> = ['Corona', 'Contact tracing'];
-const searchTerms: Array<string> = ['Corona', 'Corona App', 'Corona Warning App', 'Covid-19', 'Covid-19 App', 'Covid-19 App english', 'Contact data', 'Contact details', 'Contact tracing', 'Center for Disease control', 'SARS-CoV-2' ];
+// As long as no user input is possible, searchTerms remain hardcoded
+const searchTerms: Array<string> = [
+  "Corona",
+  "Corona App",
+  "Corona Warning App",
+  "Covid-19",
+  "Covid-19 App",
+  "Covid-19 App english",
+  "Contact data",
+  "Contact details",
+  "Contact tracing",
+  "Center for Disease control",
+  "SARS-CoV-2",
+];
 
-async function scrape (appStore: AppStore, searchTerm: string): Promise<Object> {
-  let apps: AppleApp[] | GoogleApp[] = await appStore.scraper.search({
+// Scrapes a given app-store for a given search-term
+// Returns a Promise containing either a GoogleApp or an AppleApp
+async function scrape(appStore: AppStore, searchTerm: string): Promise<Object> {
+  let apps: Array<GoogleApp> | Array<AppleApp> = await appStore.scraper.search({
     term: searchTerm,
-    num: 250
-  })
+    num: 250,
+  });
 
-  apps.forEach(app => app.searchTerm = [searchTerm]);
+  apps.forEach((app) => (app.searchTerm = searchTerm)); // append the used search-term as attribute
 
-  console.log(`Array length for searchTerm ${searchTerm} searching the ${appStore.title}: ${apps.length}`);
+  console.log(`Number of apps found searching the ${appStore.title} for ${searchTerm}: ${apps.length}`);
 
   return apps;
 }
 
-async function saveToCsv (iterable: Array<Object>, fileName: string) {
-  const csvData = await converter.json2csvAsync(iterable, {emptyFieldValue: ''});
+// Writes a given iterable to a .csv-file with a given file-name
+async function saveToCsv(iterable: Array<Object>, fileName: string) {
+  const csvData = await converter.json2csvAsync(iterable, {
+    emptyFieldValue: "",
+  });
 
-  fs.writeFile(`scrapedData/${fileName}.csv`, csvData, (err) => {
-    if (err) throw err;
-    console.log(`✍🏽 wrote data to ./scrapedData/${fileName}.csv`);
-  } );
+  if(!fs.existsSync('./scrapedData')) fs.mkdirSync('./scrapedData');
+
+  await fs.promises.writeFile(`scrapedData/${fileName}.csv`, csvData);
+  console.log(`\n✍🏽 Wrote ${iterable.length} apps to ./scrapedData/${fileName}.csv`);
 }
 
-async function saveToJson (iterable: Array<Object>, fileName: string) {
-  const jsonData = JSON.stringify(iterable);
-  fs.writeFile(`scrapedData/${fileName}.json`, jsonData, (err) => {
-    if (err) throw err;
-    console.log(`✍🏽 wrote data to ./scrapedData/${fileName}.json`);
-  } );
-
+// Google-App have the attribute "summary", whereas in Apple-Apps it's called "description"
+function isGoogleApp(app: GoogleApp | AppleApp): app is GoogleApp {
+  return Object.prototype.hasOwnProperty.call(app, "summary");
 }
-
-// https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/flat
-// TODO: Union Parameter mit Google- und Apple-Apps und folgendem Type-Checking per If-Statement einfügen
-function flattenRecursively<AppType>(array): Array<AppType> {
-  return array.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenRecursively(val)) : acc.concat(val), []);
-}
-
-function isGoogleApp(app: unknown): app is GoogleApp {
-  return Object.prototype.hasOwnProperty.call(app, 'summary');
-}
-
-function assertGoogleApp (apps: Array<any>) {
-  apps.forEach(app => {
-    const googleApp = app as GoogleApp;
-  })
-}
-
-function transformGoogleApps (apps: Array<Object>) {
-  let googleApps: Array<GoogleApp> = [];
-  apps.forEach(app => {
-    if (isGoogleApp (app)) googleApps.push(app);
-  })
-  return googleApps;
-}
-
-// function transformToCombinedApp(app: GoogleApp | AppleApp): CombinedApp {
-//   if (isGoogleApp(app)) {
-//     return {
-//       titleGoogle: app.title,
-//       appIdGoogle: app.appId,
-//       developerGoogle: app.developer,
-//       urlGoogle: app.url,
-//       searchTermsGoogle: app.searchTerm ? [app.searchTerm] : []
-//     }
-//   }
-//   else {
-// return {
-//   titleApple: app.title,
-//   appIdApple: app.appId,
-//   developerApple: app.developer,
-//   urlApple: app.url,
-//   searchTermsApple: app.searchTerm,
-// }
-//   }
-// }
 
 // Anonymous function that wraps async logic around top-level code
 (async () => {
-  const googleApps: Array<GoogleApp> = (await Promise.all(searchTerms.map(searchTerm => scrape(googlePlayStore, searchTerm))) as Array<GoogleApp>).flat()
-  const googleAppsByTitle: { [title: string]: GoogleApp } = {}
 
-  for (const googleApp of googleApps) {
-    if (googleAppsByTitle[googleApp.title]) {
-      googleAppsByTitle[googleApp.title].searchTerm.push(googleApp.searchTerm[0])
-    } else {
-      googleAppsByTitle[googleApp.title] = googleApp
-    }
+  console.log('🧐 Beginning to scrape the Google Play-Store and Apple App-Store\n');
+
+  const googleApps: Array<GoogleApp> = (
+    (await Promise.all(
+      searchTerms.map((searchTerm) => scrape(googlePlayStore, searchTerm))
+    )) as Array<GoogleApp>
+  ).flat();
+
+  const appleApps: Array<AppleApp> = (
+    (await Promise.all(
+      searchTerms.map((searchTerm) => scrape(appleAppStore, searchTerm))
+    )) as Array<AppleApp>
+  ).flat();
+
+  // Combine both Google- and Apple-Apps in here
+  const apps = new Map<string, CombinedApp>();
+
+  for (const app of [...googleApps, ...appleApps]) {
+    // TODO: title immer identisch, auch id als identifier??
+    if (!apps.has(app.title)) apps.set(app.title, new CombinedApp());
+
+    const exisitingApp = apps.get(app.title)!;
+
+    if (isGoogleApp(app)) exisitingApp.addGoogleAppData(app);
+    else exisitingApp.addAppleAppData(app);
   }
 
+  const appsAsArray = [...apps.values()].map(app => ({ ...app, bothAppStores: Boolean(app.titleApple && app.titleGoogle) }))
 
-
-  const appleApps: Array<AppleApp> = (await Promise.all(searchTerms.map(searchTerm => scrape(appleAppStore, searchTerm))) as Array<AppleApp>).flat()
-  const appleAppsByTitle: { [title: string]: AppleApp } = {}
-
-  for (const appleApp of appleApps) {
-    if (appleAppsByTitle[appleApp.title]) {
-      appleAppsByTitle[appleApp.title].searchTerm.push(appleApp.searchTerm[0])
-    } else {
-      appleAppsByTitle[appleApp.title] = appleApp
-    }
-  }
-
-  const combinedApps: { [title: string]: CombinedApp }  = {}
-
-// TODO: title immer identisch, auch id als identifier??
-
-  for (const googleApp of googleApps) {
-    combinedApps[googleApp.title] = {
-      titleGoogle: googleApp.title,
-      titleApple: null,
-      appIdGoogle: googleApp.appId,
-      appIdApple: null,
-      developerGoogle: googleApp.developer,
-      developerApple: null,
-      urlGoogle: googleApp.url,
-      urlApple: null,
-      searchTermsGoogle: googleApp.searchTerm,
-      searchTermsApple: null,
-      covidRelation: null,
-      bothAppsStores: false,
-    }
-  }
-
-  for (const appleApp of appleApps) {
-    if (combinedApps[appleApp.title]) {
-      const existingGoogleAppEntry = combinedApps[appleApp.title]
-
-      existingGoogleAppEntry.bothAppsStores = true
-      existingGoogleAppEntry.titleApple = appleApp.title
-      existingGoogleAppEntry.appIdApple = appleApp.appId
-      existingGoogleAppEntry.developerApple = appleApp.developer
-      existingGoogleAppEntry.urlApple = appleApp.url
-      existingGoogleAppEntry.searchTermsApple = appleApp.searchTerm
-    } else {
-      combinedApps[appleApp.title] = {
-        titleGoogle: null,
-        titleApple: appleApp.title,
-        appIdGoogle: null,
-        appIdApple: appleApp.appId,
-        developerGoogle: null,
-        developerApple: appleApp.developer,
-        urlGoogle: null,
-        urlApple: appleApp.url,
-        searchTermsGoogle: null,
-        searchTermsApple: appleApp.searchTerm,
-        covidRelation: null,
-        bothAppsStores: false,
-      }
-    }
-  }
-
-
-  // const allApps: Array<CombinedApp> = [...googleApps, ...appleApps].map(transformToCombinedApp)
-
-
-  //saveToCsv(googleApps, 'GoogleApps');
-  //saveToCsv(appleApps, 'Apple Apps');
-
-  // googleApps = flattenRecursively<GoogleApp>(googleApps);
-  // googleApps = transformGoogleApps(googleApps);
-
-  //let allApps = [].concat.apply([], [googleApps, appleApps]);
-  // const allApps: Array<AppleApp | GoogleApp> = flattenRecursively([googleApps, appleApps]);
-
-  //  return arr1.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val), []);
-
-  //saveToJson(allApps, 'Google Apps NEW');
-
-  //console.log(JSON.stringify(googleApps, null, 2));
-
-  // console.log(isGoogleApp(googleApps[0]));
-
-  saveToCsv(Object.values(combinedApps), 'Apps');
-
-  
-})()
+  saveToCsv(appsAsArray, "Scraped Apps");
+})();
