@@ -1,2 +1,4 @@
 node_modules
 scrapedData
+legacyOutput
+*.js
