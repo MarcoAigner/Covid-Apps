@@ -11,7 +11,7 @@
   "author": "Marco Aigner",
   "license": "ISC",
   "dependencies": {
-    "app-store-scraper": "^0.17.0",
+    "app-store-scraper": "github:jonaskuske/app-store-scraper#patch-1",
     "google-play-scraper": "^8.0.4",
     "json-2-csv": "^3.14.4",
     "npm": "^8.2.0",
