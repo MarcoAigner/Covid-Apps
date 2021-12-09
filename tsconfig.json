@@ -3,6 +3,11 @@
     "target": "esnext",
     "watch": true,
     "lib": ["dom", "ES2017"],
-    "strictNullChecks": true
-  }
+    "strictNullChecks": true,
+    "moduleResolution": "node",
+    "downlevelIteration": true
+  },
+  "files": [
+    "index.ts"
+  ]
 }
