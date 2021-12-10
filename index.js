@@ -87,54 +87,25 @@ var googleScraper = require("google-play-scraper");
 var appleScraper = require("app-store-scraper");
 var converter = require("json-2-csv");
 var fs = require("fs");
-var CombinedApp = /** @class */ (function () {
-    function CombinedApp() {
-        this.titleGoogle = undefined;
-        this.titleApple = undefined;
-        this.urlGoogle = undefined;
-        this.urlApple = undefined;
-        this.enUs = undefined;
-        this.covidRelation = undefined;
-        this.additionalProductsRequired = undefined;
-        this.regional = undefined;
-        this.state = undefined;
-        this.pilot = undefined;
-        this.organisational = undefined;
-        this.limitedLiability = undefined;
-        this.comment = undefined;
-        this.appIdGoogle = undefined;
-        this.appIdApple = undefined;
-        this.developerGoogle = undefined;
-        this.developerApple = undefined;
-        this.searchTermsGoogle = undefined;
-        this.searchTermsApple = undefined;
-    }
-    CombinedApp.prototype.addGoogleAppData = function (googleApp) {
-        var _a;
-        if (this.titleGoogle)
-            (_a = this.searchTermsGoogle) === null || _a === void 0 ? void 0 : _a.push(googleApp.searchTerm);
-        else {
-            this.titleGoogle = googleApp.title;
-            this.appIdGoogle = googleApp.appId;
-            this.developerGoogle = googleApp.developer;
-            this.urlGoogle = googleApp.url;
-            this.searchTermsGoogle = [googleApp.searchTerm];
-        }
-    };
-    CombinedApp.prototype.addAppleAppData = function (appleApp) {
-        var _a;
-        if (this.titleApple)
-            (_a = this.searchTermsApple) === null || _a === void 0 ? void 0 : _a.push(appleApp.searchTerm);
-        else {
-            this.titleApple = appleApp.title;
-            this.appIdApple = appleApp.appId;
-            this.developerApple = appleApp.developer;
-            this.urlApple = appleApp.url;
-            this.searchTermsApple = [appleApp.searchTerm];
-        }
-    };
-    return CombinedApp;
-}());
+var interfaces_1 = require("./interfaces");
+/**
+ * This script scrapes both the Google Play Store and Apple App Store using given search-terms
+ * and then exports the data to a .csv-file
+ *
+ * For this, facundoolano's "google-play-scraper" and "app-store-scraper" are used.
+ * For the latter, JonasKuske's patch for the app-store-scraper is used.
+ *
+ * The script auto-generates a filter for apps that are within both app-stores, based on equal app-titles
+ *
+ * App total, apps per app-store, number of duplicates per store and number of remaining apps are logged
+ *
+ * By now, the search-terms are hard-coded; this is to be replaced by CLI-input
+ *
+ * Marco Aigner
+ */
+// FIXME: Somehow, each run returns a different amount of apps
+// Check, if the cause is within the script
+// => Only the number of returned Google-Apps differs, apple apps stay the same
 // Apps stores are represented with an app-store-title and an array of apps, found for given search-terms
 var googlePlayStore = {
     title: "Google Play Store",
@@ -147,13 +118,6 @@ var appleAppStore = {
     scraper: appleScraper
 };
 // TODO: Implement CLI-based User-Interface
-//Prompt for search-strings and get rid of eventual (trailing) commas and spaces
-//const searchTerms: Array<string> = prompt(
-//  "👋Hi! Please enter the terms that you want to scrape for, separated by commas:"
-//)
-//  .split(/\s*,\s*/)
-//  .filter((searchTerm) => searchTerm !== "");
-//console.log(`Input: ${searchTerms}`);
 // As long as no user input is possible, searchTerms remain hardcoded
 var searchTerms = [
     "Corona",
@@ -168,8 +132,8 @@ var searchTerms = [
     "Center for Disease control",
     "SARS-CoV-2",
 ];
-// Scrapes a given app-store for a given search-term
-// Returns a Promise containing either a GoogleApp or an AppleApp
+// Scrape a given app-store for a given search-term
+// Return a Promise containing either a GoogleApp or an AppleApp
 function scrape(appStore, searchTerm) {
     return __awaiter(this, void 0, void 0, function () {
         var apps;
@@ -182,7 +146,7 @@ function scrape(appStore, searchTerm) {
                 case 1:
                     apps = _a.sent();
                     apps.forEach(function (app) { return (app.searchTerm = searchTerm); }); // append the used search-term as attribute
-                    console.log("Number of apps found searching the " + appStore.title + " for " + searchTerm + ": " + apps.length);
+                    //console.log(`Number of apps found searching the ${appStore.title} for ${searchTerm}: ${apps.length}`);
                     return [2 /*return*/, apps];
             }
         });
@@ -204,7 +168,7 @@ function saveToCsv(iterable, fileName) {
                     return [4 /*yield*/, fs.promises.writeFile("scrapedData/" + fileName + ".csv", csvData)];
                 case 2:
                     _a.sent();
-                    console.log("\n\u270D\uD83C\uDFFD Wrote " + iterable.length + " apps to ./scrapedData/" + fileName + ".csv");
+                    console.log("Wrote " + iterable.length + " apps to ./scrapedData/" + fileName + ".csv");
                     return [2 /*return*/];
             }
         });
@@ -216,25 +180,62 @@ function isGoogleApp(app) {
 }
 // Anonymous function that wraps async logic around top-level code
 (function () { return __awaiter(void 0, void 0, void 0, function () {
-    var googleApps, appleApps, apps, _a, _b, app, exisitingApp, appsAsArray;
-    var e_1, _c;
-    return __generator(this, function (_d) {
-        switch (_d.label) {
+    var playStoreArray, appStoreArray, filteredGoogleApps, filteredAppleApps, _a, _b, app, existingApp, _c, _d, app, existingApp, apps, _e, _f, app, exisitingApp, appsAsArray;
+    var e_1, _g, e_2, _h, e_3, _j;
+    return __generator(this, function (_k) {
+        switch (_k.label) {
             case 0:
-                console.log('🧐 Beginning to scrape the Google Play-Store and Apple App-Store\n');
+                console.log('Scraping the Google Play-Store and Apple App-Store for all given search-terms...\n');
                 return [4 /*yield*/, Promise.all(searchTerms.map(function (searchTerm) { return scrape(googlePlayStore, searchTerm); }))];
             case 1:
-                googleApps = (_d.sent()).flat();
+                playStoreArray = (_k.sent()).flat();
                 return [4 /*yield*/, Promise.all(searchTerms.map(function (searchTerm) { return scrape(appleAppStore, searchTerm); }))];
             case 2:
-                appleApps = (_d.sent()).flat();
+                appStoreArray = (_k.sent()).flat();
+                console.log("Found apps in total:" + (playStoreArray.length + appStoreArray.length) + "\nGoogle Play Store: " + playStoreArray.length + " apps\nApple App Store: " + appStoreArray.length + " apps\n");
+                filteredGoogleApps = new Map();
+                filteredAppleApps = new Map();
+                try {
+                    for (_a = __values(__spreadArray([], __read(playStoreArray), false)), _b = _a.next(); !_b.done; _b = _a.next()) {
+                        app = _b.value;
+                        if (!filteredGoogleApps.has(app.title))
+                            filteredGoogleApps.set(app.title, new interfaces_1.CombinedApp());
+                        existingApp = filteredGoogleApps.get(app.title);
+                        existingApp === null || existingApp === void 0 ? void 0 : existingApp.addGoogleAppData(app);
+                    }
+                }
+                catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                finally {
+                    try {
+                        if (_b && !_b.done && (_g = _a["return"])) _g.call(_a);
+                    }
+                    finally { if (e_1) throw e_1.error; }
+                }
+                try {
+                    for (_c = __values(__spreadArray([], __read(appStoreArray), false)), _d = _c.next(); !_d.done; _d = _c.next()) {
+                        app = _d.value;
+                        if (!filteredAppleApps.has(app.title))
+                            filteredAppleApps.set(app.title, new interfaces_1.CombinedApp());
+                        existingApp = filteredAppleApps.get(app.title);
+                        existingApp === null || existingApp === void 0 ? void 0 : existingApp.addAppleAppData(app);
+                    }
+                }
+                catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                finally {
+                    try {
+                        if (_d && !_d.done && (_h = _c["return"])) _h.call(_c);
+                    }
+                    finally { if (e_2) throw e_2.error; }
+                }
+                console.log("Removed " + (playStoreArray.length - filteredGoogleApps.size) + " duplicates from Google Play Store: " + filteredGoogleApps.size + " apps remaining");
+                console.log("Removed " + (appStoreArray.length - filteredAppleApps.size) + " duplicates from Apple App Store: " + filteredAppleApps.size + " apps remaining\n");
                 apps = new Map();
                 try {
-                    for (_a = __values(__spreadArray(__spreadArray([], __read(googleApps), false), __read(appleApps), false)), _b = _a.next(); !_b.done; _b = _a.next()) {
-                        app = _b.value;
+                    for (_e = __values(__spreadArray(__spreadArray([], __read(playStoreArray), false), __read(appStoreArray), false)), _f = _e.next(); !_f.done; _f = _e.next()) {
+                        app = _f.value;
                         // TODO: title immer identisch, auch id als identifier??
                         if (!apps.has(app.title))
-                            apps.set(app.title, new CombinedApp());
+                            apps.set(app.title, new interfaces_1.CombinedApp());
                         exisitingApp = apps.get(app.title);
                         if (isGoogleApp(app))
                             exisitingApp.addGoogleAppData(app);
@@ -242,14 +243,15 @@ function isGoogleApp(app) {
                             exisitingApp.addAppleAppData(app);
                     }
                 }
-                catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                catch (e_3_1) { e_3 = { error: e_3_1 }; }
                 finally {
                     try {
-                        if (_b && !_b.done && (_c = _a["return"])) _c.call(_a);
+                        if (_f && !_f.done && (_j = _e["return"])) _j.call(_e);
                     }
-                    finally { if (e_1) throw e_1.error; }
+                    finally { if (e_3) throw e_3.error; }
                 }
                 appsAsArray = __spreadArray([], __read(apps.values()), false).map(function (app) { return (__assign(__assign({}, app), { bothAppStores: Boolean(app.titleApple && app.titleGoogle) })); });
+                // 4. Save the apps to a .csv-file
                 saveToCsv(appsAsArray, "Scraped Apps");
                 return [2 /*return*/];
         }
