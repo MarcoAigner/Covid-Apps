@@ -3,6 +3,7 @@
 This script implements the scrapers from facundoolano to scrape both app-stores for given search-terms and output the results as a .csv-file
 
 https://github.com/facundoolano/google-play-scraper
+
 https://github.com/facundoolano/app-store-scraper
 
 ## To run the script
