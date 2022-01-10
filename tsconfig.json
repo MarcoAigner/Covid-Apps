@@ -1,11 +1,17 @@
 {
   "compilerOptions": {
     "target": "esnext",
+    "module": "commonjs",
     "watch": true,
     "lib": ["dom", "ES2017"],
     "strictNullChecks": true,
     "moduleResolution": "node",
     "downlevelIteration": true
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
   },
   "files": [
     "index.ts"
