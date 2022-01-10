@@ -4,6 +4,7 @@ import * as converter from "json-2-csv";
 import * as fs from "fs";
 import { AppStore, GoogleApp, AppleApp, CombinedApp } from "./interfaces";
 import { stringify } from "querystring";
+import * as inquirer from 'inquirer';
 
 /**
  * This script scrapes both the Google Play Store and Apple App Store using given search-terms
@@ -39,24 +40,6 @@ let appleAppStore: AppStore = {
   scraper: appleScraper
 };
 
-// TODO: Implement CLI-based User-Interface
-
-
-// As long as no user input is possible, searchTerms remain hardcoded
-const searchTerms: Array<string> = [
-  "Corona",
-  "Corona App",
-  "Corona Warning App",
-  "Covid-19",
-  "Covid-19 App",
-  "Covid-19 App english",
-  "Contact data",
-  "Contact details",
-  "Contact tracing",
-  "Center for Disease control",
-  "SARS-CoV-2",
-];
-
 // Scrape a given app-store for a given search-term
 // Return a Promise containing either a GoogleApp or an AppleApp
 async function scrape(appStore: AppStore, searchTerm: string): Promise<Object> {
@@ -89,27 +72,41 @@ function isGoogleApp(app: GoogleApp | AppleApp): app is GoogleApp {
   return Object.prototype.hasOwnProperty.call(app, "summary");
 }
 
+// Request CLI-input
+async function ask(message: string) {
+  return await inquirer.prompt([
+    {
+      type: "input",
+      name: "content",
+      message: message
+    },
+  ]);
+}
+
 // Anonymous function that wraps async logic around top-level code
 (async () => {
 
-  console.log('Scraping the Google Play-Store and Apple App-Store for all given search-terms...\n');
+  // 0. Request a list of search-terms from the user
+  const answer = await ask("Please enter the terms you want to search for, separated by commas: ")
+
+  const searchTerms: Array<string> = answer.content.split(/\s*,\s*/).filter((searchTerm: string) => searchTerm !== "");
 
   // 1. Return one array per app-store
   const playStoreArray: Array<GoogleApp> = (
     (await Promise.all(
       searchTerms.map((searchTerm) => scrape(googlePlayStore, searchTerm))
-    )) as Array<GoogleApp>
+    ).catch(error => console.log(error))) as Array<GoogleApp>
   ).flat();
 
   const appStoreArray: Array<AppleApp> = (
     (await Promise.all(
       searchTerms.map((searchTerm) => scrape(appleAppStore, searchTerm))
-    )) as Array<AppleApp>
+    ).catch(error => console.log(error))) as Array<AppleApp>
   ).flat();
 
   console.log(`Found apps in total: ${playStoreArray.length + appStoreArray.length}\nGoogle Play Store: ${playStoreArray.length} apps\nApple App Store: ${appStoreArray.length} apps\n`)
 
-    
+
   // 2. Eliminate duplicates
 
   const filteredGoogleApps = new Map<string, CombinedApp>();
@@ -131,9 +128,9 @@ function isGoogleApp(app: GoogleApp | AppleApp): app is GoogleApp {
 
   console.log(`Removed ${playStoreArray.length - filteredGoogleApps.size} duplicates from Google Play Store: ${filteredGoogleApps.size} apps remaining`)
   console.log(`Removed ${appStoreArray.length - filteredAppleApps.size} duplicates from Apple App Store: ${filteredAppleApps.size} apps remaining\n`)
-  
+
   // 3. Add apps from both app stores together
-  
+
   const apps = new Map<string, CombinedApp>();
 
   for (const app of [...playStoreArray, ...appStoreArray]) {

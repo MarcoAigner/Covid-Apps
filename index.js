@@ -88,6 +88,7 @@ var appleScraper = require("app-store-scraper");
 var converter = require("json-2-csv");
 var fs = require("fs");
 var interfaces_1 = require("./interfaces");
+var inquirer = require("inquirer");
 /**
  * This script scrapes both the Google Play Store and Apple App Store using given search-terms
  * and then exports the data to a .csv-file
@@ -117,21 +118,6 @@ var appleAppStore = {
     short: "apple",
     scraper: appleScraper
 };
-// TODO: Implement CLI-based User-Interface
-// As long as no user input is possible, searchTerms remain hardcoded
-var searchTerms = [
-    "Corona",
-    "Corona App",
-    "Corona Warning App",
-    "Covid-19",
-    "Covid-19 App",
-    "Covid-19 App english",
-    "Contact data",
-    "Contact details",
-    "Contact tracing",
-    "Center for Disease control",
-    "SARS-CoV-2",
-];
 // Scrape a given app-store for a given search-term
 // Return a Promise containing either a GoogleApp or an AppleApp
 function scrape(appStore, searchTerm) {
@@ -178,21 +164,40 @@ function saveToCsv(iterable, fileName) {
 function isGoogleApp(app) {
     return Object.prototype.hasOwnProperty.call(app, "summary");
 }
+// Request CLI-input
+function ask(message) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, inquirer.prompt([
+                        {
+                            type: "input",
+                            name: "content",
+                            message: message
+                        },
+                    ])];
+                case 1: return [2 /*return*/, _a.sent()];
+            }
+        });
+    });
+}
 // Anonymous function that wraps async logic around top-level code
 (function () { return __awaiter(void 0, void 0, void 0, function () {
-    var playStoreArray, appStoreArray, filteredGoogleApps, filteredAppleApps, _a, _b, app, existingApp, _c, _d, app, existingApp, apps, _e, _f, app, exisitingApp, appsAsArray;
+    var answer, searchTerms, playStoreArray, appStoreArray, filteredGoogleApps, filteredAppleApps, _a, _b, app, existingApp, _c, _d, app, existingApp, apps, _e, _f, app, exisitingApp, appsAsArray;
     var e_1, _g, e_2, _h, e_3, _j;
     return __generator(this, function (_k) {
         switch (_k.label) {
-            case 0:
-                console.log('Scraping the Google Play-Store and Apple App-Store for all given search-terms...\n');
-                return [4 /*yield*/, Promise.all(searchTerms.map(function (searchTerm) { return scrape(googlePlayStore, searchTerm); }))];
+            case 0: return [4 /*yield*/, ask("Please enter the terms you want to search for, separated by commas: ")];
             case 1:
-                playStoreArray = (_k.sent()).flat();
-                return [4 /*yield*/, Promise.all(searchTerms.map(function (searchTerm) { return scrape(appleAppStore, searchTerm); }))];
+                answer = _k.sent();
+                searchTerms = answer.content.split(/\s*,\s*/).filter(function (searchTerm) { return searchTerm !== ""; });
+                return [4 /*yield*/, Promise.all(searchTerms.map(function (searchTerm) { return scrape(googlePlayStore, searchTerm); }))["catch"](function (error) { return console.log(error); })];
             case 2:
+                playStoreArray = (_k.sent()).flat();
+                return [4 /*yield*/, Promise.all(searchTerms.map(function (searchTerm) { return scrape(appleAppStore, searchTerm); }))["catch"](function (error) { return console.log(error); })];
+            case 3:
                 appStoreArray = (_k.sent()).flat();
-                console.log("Found apps in total:" + (playStoreArray.length + appStoreArray.length) + "\nGoogle Play Store: " + playStoreArray.length + " apps\nApple App Store: " + appStoreArray.length + " apps\n");
+                console.log("Found apps in total: " + (playStoreArray.length + appStoreArray.length) + "\nGoogle Play Store: " + playStoreArray.length + " apps\nApple App Store: " + appStoreArray.length + " apps\n");
                 filteredGoogleApps = new Map();
                 filteredAppleApps = new Map();
                 try {
