@@ -41,14 +41,13 @@ let appleAppStore: AppStore = {
 };
 
 // Scrape a given app-store for a given search-term
-// Return a Promise containing either a GoogleApp or an AppleApp
 async function scrape(appStore: AppStore, searchTerm: string): Promise<Object> {
   let apps: Array<GoogleApp> | Array<AppleApp> = await appStore.scraper.search({
     term: searchTerm,
     num: 250,
   });
 
-  apps.forEach((app) => (app.searchTerm = searchTerm)); // append the used search-term as attribute
+  apps.forEach((app: GoogleApp | AppleApp) => (app.searchTerm = searchTerm)); // append the used search-term as attribute
 
   //console.log(`Number of apps found searching the ${appStore.title} for ${searchTerm}: ${apps.length}`);
 
@@ -67,13 +66,13 @@ async function saveToCsv(iterable: Array<Object>, fileName: string) {
   console.log(`Wrote ${iterable.length} apps to ./scrapedData/${fileName}.csv`);
 }
 
-// Google-App have the attribute "summary", whereas in Apple-Apps it's called "description"
+// Google-Apps have the attribute "summary", whereas in Apple-Apps it's called "description"
 function isGoogleApp(app: GoogleApp | AppleApp): app is GoogleApp {
   return Object.prototype.hasOwnProperty.call(app, "summary");
 }
 
 // Request CLI-input
-async function ask(message: string) {
+async function inputPrompt(message: string) {
   return await inquirer.prompt([
     {
       type: "input",
@@ -83,13 +82,85 @@ async function ask(message: string) {
   ]);
 }
 
+async function checkboxPrompt(terms: Array<string>, message: string) {
+
+  let choices: Array<Object> = [];
+
+  for (let value of terms) {
+    choices.push({ name: value, checked: true })
+  }
+
+  const selection = await inquirer.prompt([{
+    type: 'checkbox',
+    name: 'content',
+    message: message,
+    choices: choices,
+  }]);
+
+  return selection;
+}
+
+
+function readInput(fileName: string): string | null {
+  try {
+    return fs.readFileSync(`${fileName}.txt`).toString();
+  } catch (error) {
+    return null;
+  }
+}
+
+async function readSearchTermsFromFile(fileName: string = 'input'): Promise<string[] | null> {
+
+  console.log(`Searching for file "${fileName}.txt" within this directory...\n`)
+
+  const input = readInput(fileName);
+
+  const terms: Array<string> = [];
+
+  if (input) {
+    console.log('File found! Importing search terms:\n')
+
+    if (process.platform === 'win32') terms.push(...input.split(/\r\n/));
+    else if (process.platform === 'darwin') terms.push(...input.split(/\r/))
+    else if (process.platform === 'linux') terms.push(...input.split(/\n/))
+
+    console.log(terms);
+    console.log('\n');
+
+    return terms;
+
+  } else {
+    console.log('Either file not found or file empty!\n')
+    return null;
+  }
+}
+
+
+
 // Anonymous function that wraps async logic around top-level code
 (async () => {
 
-  // 0. Request a list of search-terms from the user
-  const answer = await ask("Please enter the terms you want to search for, separated by commas: ")
+  console.log('\n')
 
-  const searchTerms: Array<string> = answer.content.split(/\s*,\s*/).filter((searchTerm: string) => searchTerm !== "");
+  const terms: Array<string> = [];
+
+  const importedTerms = await readSearchTermsFromFile();
+
+  if (importedTerms) terms.push(...importedTerms);
+
+  // 0. Request a list of search-terms from the user
+  const answer = await inputPrompt("Please enter further search-terms separated by commas and confirm with Enter: ")
+
+  const inputTerms: Array<string> = answer.content.split(/\s*,\s*/).filter((searchTerm: string) => searchTerm !== "");
+
+  if (inputTerms) terms.push(...inputTerms);
+
+  console.log('\n');
+
+  const finalTerms = await checkboxPrompt(terms, 'Please select the search terms you want to scrape');
+  const searchTerms = finalTerms.content;
+
+  //console.log(searchTerms)
 
   // 1. Return one array per app-store
   const playStoreArray: Array<GoogleApp> = (
