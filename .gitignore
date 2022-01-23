@@ -2,3 +2,4 @@ node_modules
 scrapedData
 legacyOutput
 *.js
+*.txt
