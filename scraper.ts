@@ -163,6 +163,9 @@ async function readSearchTermsFromFile(fileName: string = 'input'): Promise<stri
   //console.log(searchTerms)
 
   // 1. Return one array per app-store
+
+  console.log('\nScraping the app-stores...\n')
+
   const playStoreArray: Array<GoogleApp> = (
     (await Promise.all(
       searchTerms.map((searchTerm) => scrape(googlePlayStore, searchTerm))

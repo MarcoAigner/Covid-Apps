@@ -2,12 +2,12 @@
   "name": "play_store_scraper",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "scraper.js",
   "type": "commonjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc --downlevelIteration index.ts & node index.js",
-    "start": "node index.js"
+    "build": "tsc --downlevelIteration scraper.ts & node scraper.js",
+    "start": "node scraper.js"
   },
   "author": "Marco Aigner",
   "license": "ISC",
