@@ -1,6 +1,8 @@
 # Covid-Apps
 
-This script implements the scrapers from facundoolano to scrape both app-stores for given search-terms and output the results as a .csv-file
+This script scrapes and exports mobile apps for the use within a (systematic) app-review, e.g. following the Preferred Reporting Items for Systematic Reviews and Meta-Analyses (PRISMA).
+
+The script implements the scrapers from facundoolano to scrape both app-stores for given search-terms.
 
 https://github.com/facundoolano/google-play-scraper
 
